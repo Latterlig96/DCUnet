@@ -2,6 +2,7 @@ from torchvision import transforms
 import torch
 from config import Config
 
+
 class TrainAugmentation:
 
     def __init__(self,
@@ -22,6 +23,7 @@ class TestAugmentation:
     def __init__(self,
                  config: Config): 
         self.augmentation = transforms.Compose([transforms.ToPILImage(),
+                                                transforms.Grayscale(num_output_channels=1),
                                                 transforms.Resize(config.input_dim),
                                                 transforms.ToTensor()])
     

@@ -3,6 +3,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from loss import DiceLoss
 from config import Config
+from utils import AverageMeter
+
 
 class TrainBuilder:
     
@@ -45,29 +47,26 @@ class Trainer(TrainBuilder):
     def train(self):
         self.model.to(self.device)
         self.model.train() 
+        losses = AverageMeter('Loss', ':.4e')
         for epoch in range(self.epochs):
-            total_loss = 0
-            running_labels = 0
             for images, labels in self.train_dataset: 
-                self.optimizer.zero_grad()
                 images, labels = images.to(self.device), labels.to(self.device)
                 output = self.model(images)
                 loss = self.loss(output, labels)
+                self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-                total_loss += loss*images.size(0)
-                running_labels += len(labels)
-            epoch_loss = total_loss/running_labels 
-        
+                losses.update(loss.item(), self.config.batch_size)
+                print(losses)
+
     def eval(self):
         with torch.no_grad(): 
+            losses = AverageMeter('Loss', ':.4e')
             self.model.eval()
-            total_loss = 0
             for images, labels in self.val_dataset: 
                 self.optimizer.zero_grad()
                 images, labels = images.to(self.device), labels.to(self.device)
                 output = self.model(images)
                 loss = self.loss(output, labels)
-                loss.backward()
-                self.optimizer.step()
-                total_loss += loss*images.size(0)
+                losses.update(loss.item(), self.config.batch_size)
+                print(losses)

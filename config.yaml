@@ -1,0 +1,13 @@
+data: 
+  train_dir_path: './CVC-ClinicDB/Original/'
+  label_dir_path: './CVC-ClinicDB/Ground Truth/'
+train:
+  batch_size: 1
+  shuffle: True 
+  input_dim: [192, 256]
+  num_channels: 3 
+  epochs: 10 
+  learning_rate: 0.01 
+  betas: [0.9, 0.999]
+  T_max: -1
+  eta_min: 0.001

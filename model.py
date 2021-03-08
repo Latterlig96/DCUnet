@@ -310,6 +310,5 @@ class DcUnet(nn.Module):
         dc_block_9 = self.dc_block_9(up4)
 
         out = self.conv_out(dc_block_9)
-        out = F.sigmoid(out)
-
+        
         return out

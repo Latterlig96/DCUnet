@@ -1,13 +1,13 @@
 from data import Dataset
-from augmentation import TrainAugmentation
+from augmentation import TrainAugmentation, TestAugmentation
 from torch.utils.data import DataLoader
 from model import DcUnet
-from loss import DiceLoss
+from loss import TverskyLoss
 from train import Trainer
 from config import Config
 import torch
-import yaml
 import argparse
+
 
 parser = argparse.ArgumentParser()
 
@@ -19,14 +19,12 @@ parser.add_argument('--config',
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    with open(args.config) as config: 
-        config = yaml.safe_load(config)
-    
-    config = Config.load_config_class(config)
+    config = Config.load_config_class(args.config)
 
     data = Dataset(root_dir=config.train_dir_path,
                    label_dir=config.label_dir_path,
-                   transform=TrainAugmentation(config),
+                   transform=[TrainAugmentation(config),
+                              TestAugmentation(config)],
                    train_mode=True)
     
     data = DataLoader(dataset=data,
@@ -35,9 +33,9 @@ if __name__ == "__main__":
     
     device = 'cuda' if torch.cuda.is_available else 'cpu'
 
-    loss = DiceLoss()
+    loss = TverskyLoss().to(device)
 
-    model = DcUnet()
+    model = DcUnet(input_channels=config.num_channels)
 
     trainer = Trainer(model=model,
                       train_dataset=data,
