@@ -1,3 +1,4 @@
 CVC-ClinicDB
 *__pycache__/
 env/
+*.log

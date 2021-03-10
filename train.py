@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from loss import DiceLoss
 from config import Config
 from utils import AverageMeter
-
+import logging 
 
 class TrainBuilder:
     
@@ -20,12 +20,18 @@ class TrainBuilder:
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer,
                                                                T_max=self.config.T_max,
                                                                eta_min=self.config.eta_min)
-        
+    
+    def build_model_cuda(self):
+        self.model.to(self.device)
+
     def build_train_dependencies(self):
         self.build_optimizer() 
         self.build_scheduler()
-
+        self.build_model_cuda()
+        
 class Trainer(TrainBuilder): 
+
+    logging.getLogger(__name__)
 
     def __init__(self,
                  model: nn.Module,
@@ -45,28 +51,28 @@ class Trainer(TrainBuilder):
         super(Trainer, self).__init__()
 
     def train(self):
-        self.model.to(self.device)
         self.model.train() 
         losses = AverageMeter('Loss', ':.4e')
         for epoch in range(self.epochs):
-            for images, labels in self.train_dataset: 
-                images, labels = images.to(self.device), labels.to(self.device)
+            for index, (images, labels) in enumerate(self.train_dataset):
+                images, labels = images.float().to(self.device), labels.float().unsqueeze(1).to(self.device)
+                self.optimizer.zero_grad()
                 output = self.model(images)
                 loss = self.loss(output, labels)
-                self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
+                self.scheduler.step()
                 losses.update(loss.item(), self.config.batch_size)
-                print(losses)
+                logging.info(losses)
 
     def eval(self):
         with torch.no_grad(): 
             losses = AverageMeter('Loss', ':.4e')
             self.model.eval()
-            for images, labels in self.val_dataset: 
+            for index, (images, labels) in enumerate(self.val_dataset): 
                 self.optimizer.zero_grad()
-                images, labels = images.to(self.device), labels.to(self.device)
+                images, labels = images.float().to(self.device), labels.float().unsqueeze(1).to(self.device)
                 output = self.model(images)
                 loss = self.loss(output, labels)
                 losses.update(loss.item(), self.config.batch_size)
-                print(losses)
+                logging.info(losses)

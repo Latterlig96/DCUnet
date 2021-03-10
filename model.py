@@ -278,7 +278,7 @@ class DcUnet(nn.Module):
                                   stride=(1, 1),
                                   padding=autopad(k=(1, 1), p=None))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor: 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         dc_block_1 = self.dc_block_1(x)
         pool_1 = self.pool1(dc_block_1)
         dc_block_1 = self.res_path_1(dc_block_1)

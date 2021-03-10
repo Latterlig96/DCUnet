@@ -37,6 +37,34 @@ class IoULoss(nn.Module):
                 
         return 1 - IoU
 
+class FocalLoss(nn.Module):
+    def __init__(self, 
+                 alpha: float=0.25, 
+                 gamma: int=2, 
+                 weight: float=None, 
+                 ignore_index: int=255):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.weight = weight
+        self.ignore_index = ignore_index
+        self.bce_fn = nn.BCEWithLogitsLoss(weight=self.weight)
+
+    def forward(self, 
+                inputs: torch.Tensor,  
+                targets: torch.Tensor
+                ) -> torch.Tensor:
+                
+        if self.ignore_index is not None:
+            mask = targets != self.ignore_index
+            targets = targets[mask]
+            inputs = inputs[mask]
+
+        logpt = -self.bce_fn(inputs, targets)
+        pt = torch.exp(logpt)
+        loss = -((1 - pt) ** self.gamma) * self.alpha * logpt
+        return loss
+
 class TverskyLoss(nn.Module):
 
     def __init__(self): 

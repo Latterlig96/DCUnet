@@ -18,6 +18,10 @@ class Config(object):
     betas: Tuple[float, float]
     T_max: int
     eta_min: float
+    test_size: float
+    random_state: int
+    filename: pathlib.Path
+    level: str
 
     def __new__(cls, *args, **kwargs):
         init_args, additional_args = {}, {}

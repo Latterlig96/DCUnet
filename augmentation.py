@@ -1,5 +1,5 @@
-from torchvision import transforms
-import torch
+import albumentations as A
+import numpy as np
 from config import Config
 
 
@@ -7,25 +7,21 @@ class TrainAugmentation:
 
     def __init__(self,
                  config: Config):
-        self.augmentation = transforms.Compose([transforms.ToPILImage(),
-                                                transforms.Resize(config.input_dim),
-                                                transforms.ColorJitter(),
-                                                transforms.RandomVerticalFlip(p=0.3),
-                                                transforms.RandomHorizontalFlip(),
-                                                transforms.RandomPerspective(p=0.3),
-                                                transforms.ToTensor()])
+        self.augmentation = A.Compose([A.Resize(height=config.input_dim[0], width=config.input_dim[1], p=1),
+                                       A.HorizontalFlip(p=0.5),
+                                       A.VerticalFlip(p=0.5),
+                                       A.ColorJitter()], p=1)
 
-    def __call__(self, x: torch.Tensor): 
-        return self.augmentation(x)
+    def __call__(self, x: np.ndarray, mask: np.ndarray): 
+        transform = self.augmentation(image=x, mask=mask)
+        return transform['image'], transform['mask']
 
 class TestAugmentation: 
 
-    def __init__(self,
-                 config: Config): 
-        self.augmentation = transforms.Compose([transforms.ToPILImage(),
-                                                transforms.Grayscale(num_output_channels=1),
-                                                transforms.Resize(config.input_dim),
-                                                transforms.ToTensor()])
+    def __init__(self, 
+                 config: Config):
+        self.augmentation = A.Compose([A.Resize(height=config.input_dim[0], width=config.input_dim[1])], p=1)
     
-    def __call__(self, x: torch.Tensor): 
-        return self.augmentation(x)
+    def __call__(self, x: np.ndarray, mask: np.ndarray):
+        transform = self.augmentation(image=x, mask=mask)
+        return transform['image'], transform['mask']
