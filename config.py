@@ -1,6 +1,6 @@
 import pathlib
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Optional
 import yaml
 
 
@@ -21,6 +21,7 @@ class Config(object):
     test_size: float
     random_state: int
     filename: pathlib.Path
+    save_model_path: Optional[str]
     level: str
 
     def __new__(cls, *args, **kwargs):

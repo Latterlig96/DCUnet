@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn 
+from typing import Optional
 from torch.utils.data import DataLoader
 from loss import DiceLoss
 from config import Config
@@ -50,7 +51,9 @@ class Trainer(TrainBuilder):
         self.config = config
         super(Trainer, self).__init__()
 
-    def train(self):
+    def train(self,
+              save_model_path: Optional[str]=None,
+              eval_after_epoch: bool=True):
         self.model.train() 
         losses = AverageMeter('Loss', ':.4e')
         for epoch in range(self.epochs):
@@ -64,7 +67,16 @@ class Trainer(TrainBuilder):
                 self.scheduler.step()
                 losses.update(loss.item(), self.config.batch_size)
                 logging.info(losses)
-
+            if eval_after_epoch:
+                logging.info(f"Epoch {epoch} end, running inference mode on validation dataset")
+                self.eval()
+                logging.info("Done validation step")
+        
+        if save_model_path: 
+            logging.info(f"Saving model to {save_model_path}")
+            torch.save(self.model.state_dict(), save_model_path)
+            logging.info("Model saved successfully")
+        
     def eval(self):
         with torch.no_grad(): 
             losses = AverageMeter('Loss', ':.4e')

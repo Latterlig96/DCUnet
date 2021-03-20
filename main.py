@@ -65,4 +65,4 @@ if __name__ == "__main__":
                       device=device,
                       config=config)
 
-    trainer.eval()
+    trainer.train(save_model_path=config.save_model_path)
