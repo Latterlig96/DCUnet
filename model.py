@@ -25,15 +25,12 @@ class ConvBlock(nn.Module):
                               stride=stride,
                               padding=autopad(k=kernel_size, p=padding), **kwargs)
         self.bn = nn.BatchNorm2d(num_features=output_channels)
-        self.dropout = nn.Dropout2d(p=0.3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.conv(x)
         out = self.bn(out)
         if self.activation:
             out = F.relu(out)
-        if self.training:
-            out = self.dropout(out)
         return out
 
 class MaxPooling(nn.Module): 
@@ -52,7 +49,7 @@ class MaxPooling(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor: 
         out = self.pool(x)
         return out
-
+    
 class ConvTranspose(nn.Module): 
     
     def __init__(self,
@@ -189,6 +186,7 @@ class ResPath(nn.Module):
                                                 output_channels=self.output_channels,
                                                 kernel_size=(1, 1),
                                                 stride=(1, 1),
+                                                activation=False,
                                                 padding=autopad(k=(1, 1), p=padding)))
             self.module.append(module=ConvBlock(input_channels=self.output_channels,
                                                 output_channels=self.output_channels,
@@ -310,5 +308,5 @@ class DcUnet(nn.Module):
         dc_block_9 = self.dc_block_9(up4)
 
         out = self.conv_out(dc_block_9)
-        
+                
         return out

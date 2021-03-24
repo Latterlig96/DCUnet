@@ -20,7 +20,6 @@ class Config(object):
     eta_min: float
     test_size: float
     random_state: int
-    filename: pathlib.Path
     save_model_path: Optional[str]
     level: str
 

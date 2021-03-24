@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn 
-from typing import Optional
+from typing import Optional, TypeVar
 from torch.utils.data import DataLoader
-from loss import DiceLoss
 from config import Config
 from utils import AverageMeter
 import logging 
@@ -24,11 +23,15 @@ class TrainBuilder:
     
     def build_model_cuda(self):
         self.model.to(self.device)
-
+    
+    def build_scaler(self):
+        self.scaler = torch.cuda.amp.GradScaler()
+    
     def build_train_dependencies(self):
         self.build_optimizer() 
         self.build_scheduler()
         self.build_model_cuda()
+        self.build_scaler()
         
 class Trainer(TrainBuilder): 
 
@@ -38,7 +41,7 @@ class Trainer(TrainBuilder):
                  model: nn.Module,
                  train_dataset: DataLoader,
                  val_dataset: DataLoader,
-                 loss: DiceLoss,
+                 loss: TypeVar("loss_instance"),
                  epochs: int,
                  device: str,
                  config: Config):
@@ -60,11 +63,13 @@ class Trainer(TrainBuilder):
             for index, (images, labels) in enumerate(self.train_dataset):
                 images, labels = images.float().to(self.device), labels.float().unsqueeze(1).to(self.device)
                 self.optimizer.zero_grad()
-                output = self.model(images)
-                loss = self.loss(output, labels)
-                loss.backward()
-                self.optimizer.step()
+                with torch.cuda.amp.autocast():
+                    output = self.model(images)
+                    loss = self.loss(output, labels)
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
                 self.scheduler.step()
+                self.scaler.update()
                 losses.update(loss.item(), self.config.batch_size)
                 logging.info(losses)
             if eval_after_epoch:

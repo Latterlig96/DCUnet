@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 import pathlib
 from typing import Union, TypeVar, List
@@ -23,6 +24,7 @@ class Dataset(Dataset):
         mask = cv2.imread(self.label_dir[idx], 0)
         if self.transform:
             image, mask = self.transform(image, mask)
-        image, mask = image.transpose((2, 0, 1)) / 255.0, mask / 255.0
-
+        
+        image, mask = torch.div(image, 255), torch.div(mask, 255)
+        
         return image, mask

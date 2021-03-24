@@ -3,6 +3,7 @@ from augmentation import TrainAugmentation, TestAugmentation
 from torch.utils.data import DataLoader
 from model import DcUnet
 from glob import glob
+from loss import FocalTverskyLoss
 from sklearn.model_selection import train_test_split
 from train import Trainer
 from config import Config
@@ -26,8 +27,7 @@ if __name__ == "__main__":
     samples = glob(config.train_dir_path + "*.tif")
     masks = glob(config.label_dir_path + "*.tif")
 
-    logging.basicConfig(filename=config.filename,
-                        level=config.level,
+    logging.basicConfig(level=config.level,
                         format='%(asctime)s %(levelname)-8s %(name)-15s %(message)s')
     
     x_train, x_val, y_train, y_val = train_test_split(samples, 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     device = 'cuda' if torch.cuda.is_available else 'cpu'
 
-    loss = torch.nn.BCEWithLogitsLoss()
+    loss = FocalTverskyLoss()
 
     model = DcUnet(input_channels=config.num_channels)
 
