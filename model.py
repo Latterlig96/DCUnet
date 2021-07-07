@@ -275,6 +275,7 @@ class DcUnet(nn.Module):
                                   kernel_size=(1, 1),
                                   stride=(1, 1),
                                   padding=autopad(k=(1, 1), p=None))
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         dc_block_1 = self.dc_block_1(x)
@@ -308,5 +309,6 @@ class DcUnet(nn.Module):
         dc_block_9 = self.dc_block_9(up4)
 
         out = self.conv_out(dc_block_9)
-                
+        out = self.sigmoid(out)
+        
         return out

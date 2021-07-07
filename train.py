@@ -56,10 +56,11 @@ class Trainer(TrainBuilder):
 
     def train(self,
               save_model_path: Optional[str]=None,
-              eval_after_epoch: bool=True):
-        self.model.train() 
+              eval_after_epoch: bool=True): 
         losses = AverageMeter('Loss', ':.4e')
+        min_loss = float('inf')
         for epoch in range(self.epochs):
+            self.model.train()
             for index, (images, labels) in enumerate(self.train_dataset):
                 images, labels = images.float().to(self.device), labels.float().unsqueeze(1).to(self.device)
                 self.optimizer.zero_grad()
@@ -74,14 +75,20 @@ class Trainer(TrainBuilder):
                 logging.info(losses)
             if eval_after_epoch:
                 logging.info(f"Epoch {epoch} end, running inference mode on validation dataset")
-                self.eval()
+                avg_loss = self.eval()
                 logging.info("Done validation step")
         
-        if save_model_path: 
+                if save_model_path and avg_loss < min_loss: 
+                    logging.info(f"Saving model to {save_model_path}")
+                    torch.save(self.model.state_dict(), save_model_path)
+                    logging.info("Model saved successfully")
+                    min_loss = avg_loss
+
+        if save_model_path and self.val_dataset is None:
             logging.info(f"Saving model to {save_model_path}")
             torch.save(self.model.state_dict(), save_model_path)
             logging.info("Model saved successfully")
-        
+
     def eval(self):
         with torch.no_grad(): 
             losses = AverageMeter('Loss', ':.4e')
@@ -93,3 +100,4 @@ class Trainer(TrainBuilder):
                 loss = self.loss(output, labels)
                 losses.update(loss.item(), self.config.batch_size)
                 logging.info(losses)
+            return losses.get_avg_loss()
