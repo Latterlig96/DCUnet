@@ -4,6 +4,7 @@ from typing import Optional, TypeVar
 from torch.utils.data import DataLoader
 from config import Config
 from utils import AverageMeter
+from torchmetrics.functional import dice_score, iou
 import logging 
 
 class TrainBuilder:
@@ -58,6 +59,8 @@ class Trainer(TrainBuilder):
               save_model_path: Optional[str]=None,
               eval_after_epoch: bool=True): 
         losses = AverageMeter('Loss', ':.4e')
+        dice_coeff = AverageMeter('Dice_Coeff', ':.4e')
+        jaccard_coeff = AverageMeter('IoU', ':.4e')
         min_loss = float('inf')
         for epoch in range(self.epochs):
             self.model.train()
@@ -72,7 +75,9 @@ class Trainer(TrainBuilder):
                 self.scheduler.step()
                 self.scaler.update()
                 losses.update(loss.item(), self.config.batch_size)
-                logging.info(losses)
+                dice_coeff.update(dice_score(output, labels.int()), self.config.batch_size)
+                jaccard_coeff.update(iou(output, labels.int()), self.config.batch_size)
+                logging.info(f"Loss:{losses.get_avg()}, Dice_Coeff: {dice_coeff.get_avg()}, Jaccard_Index: {jaccard_coeff.get_avg()}")
             if eval_after_epoch:
                 logging.info(f"Epoch {epoch} end, running inference mode on validation dataset")
                 avg_loss = self.eval()
@@ -92,12 +97,15 @@ class Trainer(TrainBuilder):
     def eval(self):
         with torch.no_grad(): 
             losses = AverageMeter('Loss', ':.4e')
+            dice_coeff = AverageMeter('Dice_Coeff', ':.4e')
+            jaccard_coeff = AverageMeter('IoU', ':.4e')
             self.model.eval()
             for index, (images, labels) in enumerate(self.val_dataset): 
                 self.optimizer.zero_grad()
                 images, labels = images.float().to(self.device), labels.float().unsqueeze(1).to(self.device)
                 output = self.model(images)
                 loss = self.loss(output, labels)
-                losses.update(loss.item(), self.config.batch_size)
-                logging.info(losses)
-            return losses.get_avg_loss()
+                dice_coeff.update(dice_score(output, labels.int()), self.config.batch_size)
+                jaccard_coeff.update(iou(output, labels.int()), self.config.batch_size)
+                logging.info(f"Loss:{losses.get_avg()}, Dice_Coeff: {dice_coeff.get_avg()}, Jaccard_Index: {jaccard_coeff.get_avg()}")
+            return losses.get_avg()

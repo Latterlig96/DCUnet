@@ -6,11 +6,11 @@ train:
   shuffle: True 
   input_dim: [256, 192]
   num_channels: 3 
-  epochs: 50 
-  learning_rate: 0.0001 
+  epochs: 100 
+  learning_rate: 0.001 
   betas: [0.9, 0.999]
   T_max: 30
-  eta_min: 0.00001
+  eta_min: 0.0001
   test_size: 0.3
   random_state: 43 
   save_model_path: "DCUnet.pt"

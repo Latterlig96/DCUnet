@@ -26,5 +26,6 @@ class Dataset(Dataset):
             image, mask = self.transform(image, mask)
         
         image, mask = torch.div(image, 255), torch.div(mask, 255)
-        
+        mask = torch.where(mask < 1, torch.tensor(0.), mask)
+
         return image, mask
