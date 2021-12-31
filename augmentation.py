@@ -1,6 +1,6 @@
 import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
 import numpy as np
+from albumentations.pytorch.transforms import ToTensorV2
 from config import Config
 
 
