@@ -1,16 +1,16 @@
-from data import Dataset
-from augmentation import TrainAugmentation, TestAugmentation
-from torch.utils.data import DataLoader
-from model import DcUnet
-from glob import glob
-from loss import FocalTverskyLoss
-from sklearn.model_selection import train_test_split
-from train import Trainer
-from config import Config
-import torch
 import argparse
 import logging
-
+from glob import glob
+import torch
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+from augmentation import TestAugmentation, TrainAugmentation
+from config import Config
+from data import Dataset
+from loss import FocalTverskyLoss
+from model import DcUnet
+from train import Trainer
+from utils import seed_everything
 
 parser = argparse.ArgumentParser()
 
@@ -29,29 +29,31 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=config.level,
                         format='%(asctime)s %(levelname)-8s %(name)-15s %(message)s')
-    
-    x_train, x_val, y_train, y_val = train_test_split(samples, 
+
+    device = 'cuda' if torch.cuda.is_available else 'cpu'
+
+    seed_everything(config.random_state, device)
+
+    x_train, x_val, y_train, y_val = train_test_split(samples,
                                                       masks,
                                                       test_size=config.test_size,
                                                       random_state=config.random_state)
 
     train_data = Dataset(root_dir=x_train,
-                        label_dir=y_train,
-                        transform=TrainAugmentation(config))
-    
+                         label_dir=y_train,
+                         transform=TrainAugmentation(config))
+
     val_data = Dataset(root_dir=x_val,
                        label_dir=y_val,
                        transform=TestAugmentation(config))
 
     train_data = DataLoader(dataset=train_data,
-                      batch_size=config.batch_size,
-                      shuffle=config.shuffle)
-    
+                            batch_size=config.batch_size,
+                            shuffle=config.shuffle)
+
     val_data = DataLoader(dataset=val_data,
                           batch_size=config.batch_size,
                           shuffle=config.shuffle)
-
-    device = 'cuda' if torch.cuda.is_available else 'cpu'
 
     loss = FocalTverskyLoss()
 

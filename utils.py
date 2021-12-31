@@ -1,3 +1,7 @@
+import numpy as np 
+import random 
+import torch
+
 def autopad(k, p=None):
     if p is None:
         p = k // 2 if isinstance(k, int) else [x // 2 for x in k] 
@@ -29,3 +33,10 @@ class AverageMeter:
     def __str__(self):
         fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
         return fmtstr.format(**self.__dict__)
+
+def seed_everything(seed: int, device: str) -> None:    
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if device == 'cuda':
+        torch.cuda.manual_seed_all(seed)

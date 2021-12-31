@@ -204,8 +204,8 @@ class ResPath(nn.Module):
 
         for i in range(self.length-1):
             shortcut = out
-            shortcut = self.module[i](shortcut)
-            out = self.module[i+1](out)
+            shortcut = self.module[i*2](shortcut)
+            out = self.module[i*2+1](out)
             out = torch.add(shortcut, out)
             out = F.relu(out)
             out = self.bn(out)

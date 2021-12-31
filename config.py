@@ -21,6 +21,7 @@ class Config(object):
     test_size: float
     random_state: int
     save_model_path: Optional[str]
+    log_every_n_steps: int
     level: str
 
     def __new__(cls, *args, **kwargs):

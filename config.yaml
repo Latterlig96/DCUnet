@@ -14,5 +14,6 @@ train:
   test_size: 0.3
   random_state: 43 
   save_model_path: "DCUnet.pt"
+  log_every_n_steps: 20
 logging: 
   level: INFO 
