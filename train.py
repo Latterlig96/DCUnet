@@ -3,7 +3,7 @@ from typing import Optional, TypeVar
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torchmetrics.functional import accuracy, iou
+from torchmetrics import JaccardIndex
 from config import Config
 from utils import AverageMeter
 
@@ -61,9 +61,9 @@ class Trainer(TrainBuilder):
               save_model_path: Optional[str] = None,
               eval_after_epoch: bool = True):
         losses = AverageMeter('Loss', ':.4e')
-        accuracy_metric = AverageMeter('Accuracy', ':.4e')
+        jaccard_index = JaccardIndex(num_classes=2)
         jaccard_coeff = AverageMeter('IoU', ':.4e')
-        min_loss = float('inf')
+        max_jaccard = 0
         for epoch in range(self.epochs):
             self.model.train()
             for index, (images, labels) in enumerate(self.train_dataset):
@@ -78,24 +78,23 @@ class Trainer(TrainBuilder):
                 self.scheduler.step()
                 self.scaler.update()
                 losses.update(loss.item(), self.config.batch_size)
-                accuracy_metric.update(
-                    accuracy(output, labels.int()), self.config.batch_size)
                 jaccard_coeff.update(
-                    iou(output, labels.int()), self.config.batch_size)
+                    jaccard_index(output.cpu(), labels.cpu().int()), self.config.batch_size)
                 if index % self.config.log_every_n_steps == 0:
                     logging.info(
-                        f"Loss:{losses.get_avg()}, Accuracy: {accuracy_metric.get_avg()}, Jaccard_Index: {jaccard_coeff.get_avg()}")
+                        f"Loss: {losses.get_avg()} Jaccard_Index: {jaccard_coeff.get_avg()}")
             if eval_after_epoch:
                 logging.info(
                     f"Epoch {epoch} end, running inference mode on validation dataset")
-                avg_loss = self.eval()
+                avg_jaccard = self.eval()
                 logging.info("Done validation step")
 
-                if save_model_path and avg_loss < min_loss:
+                if save_model_path and avg_jaccard > max_jaccard:
+                    print(avg_jaccard, max_jaccard)
                     logging.info(f"Saving model to {save_model_path}")
                     torch.save(self.model.state_dict(), save_model_path)
                     logging.info("Model saved successfully")
-                    min_loss = avg_loss
+                    max_jaccard = avg_jaccard
 
         if save_model_path and self.val_dataset is None:
             logging.info(f"Saving model to {save_model_path}")
@@ -105,7 +104,7 @@ class Trainer(TrainBuilder):
     def eval(self):
         with torch.no_grad():
             losses = AverageMeter('Loss', ':.4e')
-            accuracy_metric = AverageMeter('Accuracy', ':.4e')
+            jaccard_index = JaccardIndex(num_classes=2)
             jaccard_coeff = AverageMeter('IoU', ':.4e')
             self.model.eval()
             for index, (images, labels) in enumerate(self.val_dataset):
@@ -114,11 +113,10 @@ class Trainer(TrainBuilder):
                     self.device), labels.float().unsqueeze(1).to(self.device)
                 output = self.model(images)
                 loss = self.loss(output, labels)
-                accuracy_metric.update(
-                    accuracy(output, labels.int()), self.config.batch_size)
+                losses.update(loss.item(), self.config.batch_size)
                 jaccard_coeff.update(
-                    iou(output, labels.int()), self.config.batch_size)
+                    jaccard_index(output.cpu(), labels.cpu().int()), self.config.batch_size)
                 if index % self.config.log_every_n_steps == 0:
                     logging.info(
-                        f"Accuracy: {accuracy_metric.get_avg()}, Jaccard_Index: {jaccard_coeff.get_avg()}")
-            return losses.get_avg()
+                        f"Loss: {losses.get_avg()} Jaccard_Index: {jaccard_coeff.get_avg()}")
+            return jaccard_coeff.get_avg().item()

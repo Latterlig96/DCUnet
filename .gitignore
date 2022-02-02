@@ -2,3 +2,6 @@ CVC-ClinicDB
 *__pycache__/
 env/
 *.log
+*.pt
+*.rar
+runs/
