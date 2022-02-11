@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from augmentation import TestAugmentation, TrainAugmentation
 from config import Config
-from data import Dataset
+from dataset import Dataset
 from loss import FocalTverskyLoss
 from model import DcUnet
 from train import Trainer
@@ -67,4 +67,4 @@ if __name__ == "__main__":
                       device=device,
                       config=config)
 
-    trainer.train(save_model_path=config.save_model_path)
+    trainer.train(save_model_path=config.save_model_path, visualize=True)

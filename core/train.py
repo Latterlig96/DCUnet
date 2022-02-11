@@ -6,6 +6,9 @@ from torch.utils.data import DataLoader
 from torchmetrics import JaccardIndex
 from config import Config
 from utils import AverageMeter
+from torch.utils.tensorboard import SummaryWriter
+from visualize import show_training_results
+
 
 
 class TrainBuilder:
@@ -28,12 +31,16 @@ class TrainBuilder:
 
     def build_scaler(self):
         self.scaler = torch.cuda.amp.GradScaler()
+    
+    def build_writer(self):
+        self.writer = SummaryWriter()
 
     def build_train_dependencies(self):
         self.build_optimizer()
         self.build_scheduler()
         self.build_model_cuda()
         self.build_scaler()
+        self.build_writer()
 
 
 class Trainer(TrainBuilder):
@@ -59,7 +66,8 @@ class Trainer(TrainBuilder):
 
     def train(self,
               save_model_path: Optional[str] = None,
-              eval_after_epoch: bool = True):
+              eval_after_epoch: bool = True,
+              visualize: bool = True) -> None:
         losses = AverageMeter('Loss', ':.4e')
         jaccard_index = JaccardIndex(num_classes=2)
         jaccard_coeff = AverageMeter('IoU', ':.4e')
@@ -83,14 +91,15 @@ class Trainer(TrainBuilder):
                 if index % self.config.log_every_n_steps == 0:
                     logging.info(
                         f"Loss: {losses.get_avg()} Jaccard_Index: {jaccard_coeff.get_avg()}")
+            self.writer.add_scalar('Loss/Train', losses.get_avg(), epoch)
+            self.writer.add_scalar('Train/JaccardIndex', jaccard_coeff.get_avg(), epoch)
             if eval_after_epoch:
                 logging.info(
                     f"Epoch {epoch} end, running inference mode on validation dataset")
-                avg_jaccard = self.eval()
+                avg_jaccard = self.eval(epoch)
                 logging.info("Done validation step")
 
                 if save_model_path and avg_jaccard > max_jaccard:
-                    print(avg_jaccard, max_jaccard)
                     logging.info(f"Saving model to {save_model_path}")
                     torch.save(self.model.state_dict(), save_model_path)
                     logging.info("Model saved successfully")
@@ -100,8 +109,11 @@ class Trainer(TrainBuilder):
             logging.info(f"Saving model to {save_model_path}")
             torch.save(self.model.state_dict(), save_model_path)
             logging.info("Model saved successfully")
+        
+        if visualize:
+            show_training_results()
 
-    def eval(self):
+    def eval(self, epoch: int) -> torch.Tensor:
         with torch.no_grad():
             losses = AverageMeter('Loss', ':.4e')
             jaccard_index = JaccardIndex(num_classes=2)
@@ -119,4 +131,6 @@ class Trainer(TrainBuilder):
                 if index % self.config.log_every_n_steps == 0:
                     logging.info(
                         f"Loss: {losses.get_avg()} Jaccard_Index: {jaccard_coeff.get_avg()}")
+            self.writer.add_scalar('Loss/Val', losses.get_avg(), epoch)
+            self.writer.add_scalar('Val/JaccardIndex', jaccard_coeff.get_avg(), epoch)
             return jaccard_coeff.get_avg().item()

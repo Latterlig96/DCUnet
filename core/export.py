@@ -1,7 +1,6 @@
 import torch
 import argparse
-from model import DcUnet
-import json
+from core.model import DcUnet
 
 parser = argparse.ArgumentParser(description="Export model to torchscript format")
 

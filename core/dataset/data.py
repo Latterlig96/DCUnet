@@ -25,8 +25,6 @@ class Dataset(Dataset):
         mask = cv2.imread(self.label_dir[idx], 0)
         if self.transform:
             image, mask = self.transform(image, mask)
-
-        image, mask = torch.div(image, 255), torch.div(mask, 255)
-        mask = torch.where(mask < 1, torch.tensor(0.), mask)
-
+        mask = torch.div(mask, 255)
+        
         return image, mask

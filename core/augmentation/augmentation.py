@@ -12,6 +12,7 @@ class TrainAugmentation:
                                        A.HorizontalFlip(),
                                        A.VerticalFlip(),
                                        A.RandomBrightnessContrast(),
+                                       A.Normalize(config.img_mean, config.img_std),
                                        ToTensorV2()], p=1)
 
     def __call__(self, x: np.ndarray, mask: np.ndarray): 
@@ -23,6 +24,7 @@ class TestAugmentation:
     def __init__(self, 
                  config: Config):
         self.augmentation = A.Compose([A.Resize(height=config.input_dim[0], width=config.input_dim[1]),
+                                       A.Normalize(config.img_mean, config.img_std),
                                        ToTensorV2()], p=1)
     
     def __call__(self, x: np.ndarray, mask: np.ndarray):

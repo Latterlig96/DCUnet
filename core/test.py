@@ -4,7 +4,11 @@ import cv2
 import torch
 import numpy as np
 from glob import glob
-from model import DcUnet
+from typing import Tuple
+from core.model import DcUnet
+import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
+import uuid
 
 
 parser = argparse.ArgumentParser('Test your trained model')
@@ -38,10 +42,20 @@ parser.add_argument('-v', '--visualize',
                     help="Visualize frames while processing",
                     action="store_true")
 
+class TestAugmentation: 
+
+    def __init__(self, 
+                 img_shape: Tuple[int]):
+        self.augmentation = A.Compose([A.Resize(height=img_shape[0], width=img_shape[1]),
+                                       A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                       ToTensorV2()], p=1)
+    
+    def __call__(self, x: np.ndarray):
+        transform = self.augmentation(image=x)
+        return transform['image']
 
 def _preprocess(img: np.ndarray, device: str = None) -> torch.Tensor:
-    img = img.transpose((2, 0, 1)) / 255.0
-    img = torch.from_numpy(img).unsqueeze(0)
+    img = TestAugmentation(img.shape)(img).unsqueeze(0)
     if device is not None and device == 'cuda':
         return img.to(device).half()
     return img.float()
@@ -52,13 +66,15 @@ def _postprocess(img: torch.Tensor, device: str = None) -> np.ndarray:
     else:
         img = img.detach().numpy()
     img = img.squeeze((0, 1)).astype(np.float32)
-    img = np.where(img > 0.5, 1, 0).astype(np.float32)
+    img = np.where(img == 0, 0, 1).astype(np.float32)
     return img
 
-def _save(file: str, img: np.ndarray) -> None:
+def _save(file: str, img: np.ndarray, run_id: uuid.UUID = None) -> None:
     if not os.path.isdir('./runs/'):
         os.mkdir('./runs/')
-    file = os.path.join('./runs/', file.split('/')[-1])
+    if not os.path.isdir(f'./runs/{run_id.hex}/'):
+        os.mkdir(f'./runs/{run_id.hex}/')
+    file = os.path.join(f'./runs/{run_id.hex}/', file.split('/')[-1])
     cv2.imwrite(file, img)
 
 if __name__ == "__main__":
@@ -82,26 +98,31 @@ if __name__ == "__main__":
         model.to(device).half()
     model.eval()
     
-    if isinstance(source, list):
-        for file in source:
-            img = cv2.imread(file)
+    run_id = uuid.uuid4()
+
+    with torch.no_grad():
+        if isinstance(source, list):
+            for file in source:
+                img = cv2.imread(file)
+                img = cv2.resize(img, args.imgsz)
+                img = _preprocess(img, device)
+                print(img.shape)
+                output = model(img)
+                print(output.shape)
+                img = _postprocess(output, device)
+                if args.save:
+                    _save(file, img, run_id)
+                if args.vis:
+                    cv2.imshow("frame", img)
+                    cv2.waitKey(1)
+        else:
+            img = cv2.imread(source)
             img = cv2.resize(img, args.imgsz)
             img = _preprocess(img, device)
             output = model(img)
             img = _postprocess(output, device)
             if args.save:
-                _save(file, img)
+                _save(source, img, run_id)
             if args.vis:
                 cv2.imshow("frame", img)
-                cv2.waitKey(0)
-    else:
-        img = cv2.imread(source)
-        img = cv2.resize(img, args.imgsz)
-        img = _preprocess(img, device)
-        output = model(img)
-        img = _postprocess(output, device)
-        if args.save:
-            _save(source, img)
-        if args.vis:
-            cv2.imshow("frame", img)
-            cv2.waitKey(0)
+                cv2.waitKey(1)

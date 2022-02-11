@@ -11,11 +11,13 @@ class Config(object):
     label_dir_path: pathlib.Path
     batch_size: int
     shuffle: bool
-    input_dim: Tuple[int, int]
+    input_dim: Tuple[int]
+    img_mean: Tuple[int]
+    img_std: Tuple[int]
     num_channels: int
     epochs: int
     learning_rate: float
-    betas: Tuple[float, float]
+    betas: Tuple[float]
     T_max: int
     eta_min: float
     test_size: float

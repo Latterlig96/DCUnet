@@ -2,16 +2,18 @@ data:
   train_dir_path: './CVC-ClinicDB/Original/'
   label_dir_path: './CVC-ClinicDB/Ground Truth/'
 train:
-  batch_size: 4
+  batch_size: 6
   shuffle: True 
   input_dim: [256, 192]
+  img_mean: [0.485, 0.456, 0.406]
+  img_std: [0.229, 0.224, 0.225]
   num_channels: 3 
   epochs: 100 
-  learning_rate: 0.001 
+  learning_rate: 0.0003
   betas: [0.9, 0.999]
-  T_max: 30
-  eta_min: 0.0001
-  test_size: 0.3
+  T_max: 10
+  eta_min: 0.00004
+  test_size: 0.2
   random_state: 43 
   save_model_path: "DCUnet.pt"
   log_every_n_steps: 20
