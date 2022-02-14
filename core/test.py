@@ -106,9 +106,7 @@ if __name__ == "__main__":
                 img = cv2.imread(file)
                 img = cv2.resize(img, args.imgsz)
                 img = _preprocess(img, device)
-                print(img.shape)
                 output = model(img)
-                print(output.shape)
                 img = _postprocess(output, device)
                 if args.save:
                     _save(file, img, run_id)

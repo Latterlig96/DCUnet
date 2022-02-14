@@ -8,7 +8,6 @@ def show_training_results():
 
     parents = glob('./runs/*')
     paths = list(map(lambda x: glob(f"{x}/events*")[0], parents))
-    print(paths)
     for path in paths:
         event_acc = EventAccumulator(path, size_guidance={'scalars': 0})
         event_acc.Reload()
